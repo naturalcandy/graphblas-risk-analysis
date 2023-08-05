@@ -1,0 +1,26 @@
+# .gitignore
+__pycache__/
+env/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+dist/
+build/
+data/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code
+.vscode/
+
+# pyenv
+.conda
+.python-version
+
+#DS_Store
+.DS_Store

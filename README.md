@@ -1,2 +1,3 @@
-# graphblas-stock-analysis-
- A Real-Time Stock Market Graph Analysis tool using GraphBLAS
+# graphblas-risk-analysis
+
+A systemic risk analysis tool using GraphBLAS.

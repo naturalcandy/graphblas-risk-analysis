@@ -1,3 +1,4 @@
 pygraphblas
 pandas
-numba
+pytest
+pytest-dependency

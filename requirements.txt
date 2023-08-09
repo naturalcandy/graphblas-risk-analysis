@@ -1,4 +1,4 @@
 pygraphblas
 pandas
 pytest
-pytest-dependency
+networkx

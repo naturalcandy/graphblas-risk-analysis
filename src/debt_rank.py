@@ -1,83 +1,97 @@
 import graphblas as gb
 gb.init("suitesparse", blocking=True)
 from graphblas import Matrix, Vector
-from graphblas import  unary, binary, monoid, semiring, select
+from graphblas import  unary, binary, monoid, semiring
 
-#Rows represent the debtor (the one who owes money).
-#Columns represent the creditor (the one who has given out the loan or to whom the money is owed).
+"""
+    Calculates the DebtRank of nodes in a financial network using GraphBLAS.
 
-def register_special_op(beta: float):
-    #define custom operations         
-    unary.register_new("health_update", lambda x: 1 if x > 1 else x)
-    binary.register_new("scaled_addition", lambda x, y: x + y * beta)
-    semiring.register_new("impact_semiring", monoid.times, binary.scaled_addition)
+    Parameters:
+    - L (Matrix): The Asset Liability Matrix where each element L_{ij} represents the 
+                  amount of money that institution j has loaned to institution i.
+    - c (Vector): Vector representing the total capital of each institution.
+    - h (Vector): Initial health or economic value of institutions. 
+                  Values should be in the range [0,1].
+    - s (Vector): Initial state of each institution where:
+                  0: Undistressed
+                  1: Distressed
+                  2: Inactive
+    - max_iter (int, optional): Maximum number of iterations for the simulation. 
+                                Default is 100.
 
-    #used for conditional checks regarding node state.
-    select.register_new("greater_than_zero", lambda x, i, j, k: x > 0)
-    select.register_new("not_equal_two", lambda x, i, j, k: x != 2)
-      
+    Returns:
+    - Vector: DebtRank vector where each entry represents the DebtRank of the 
+              corresponding institution.
+    - float: Total DebtRank value for the entire network.
 
+    Overview:
+    The function simulates the propagation of distress in a financial network. 
+    It calculates the exposure network W from the Asset Liability Matrix and the 
+    capital vector. The function then computes the fraction of total outstanding 
+    loans for each institution. Using an iterative approach, the function updates 
+    the health and state of each institution based on their interactions with other 
+    institutions. The DebtRank is then calculated as the difference between the 
+    final impact and the initial impact caused by the distressed set.
 
-def debt_rank_graphBLAS(L: Matrix, c: Vector, d: Vector,
-                        h: Vector, s: Vector, 
-                        beta: float, max_iter: int = 100) -> (Vector, float):
+    Notes:
+    - Convergence is checked at each iteration. The simulation stops if the health 
+      and state vectors do not change between iterations or if the maximum number 
+      of iterations is reached.
+    - The final state of the h and s vectors represent the remaining equity and state of
+      all institutions once the simulation has completed. 
+    """
+def debt_rank_graphBLAS(L: Matrix, 
+                        c: Vector,
+                        h: Vector, 
+                        s: Vector, 
+                        max_iter: int = 100) -> Vector:
     
         #Calculate the exposure network W
         W = L.dup()
-        W << W.ewise_mult(c, op="truediv")
-        W << W.apply(lambda x: min(1, x))
+        for j in range(L.nrows):
+            W[:, j] << W[:, j].apply(binary.truediv, right=c[j]).apply(lambda x: max(1, x))
 
         #Calculate the fraction of total outstanding loans v
-        L_total = L.reduce_rowwise(monoid.plus)
-        L_total_sum = L_total.reduce(monoid.plus)
-        v = L_total / L_total_sum
+        L_i = L.reduce_columnwise(monoid.plus)
+        total_outstanding = L_i.reduce(monoid.plus).value
+        v = Vector(float, L.ncols)
+        v << L_i.apply(lambda x: x / total_outstanding)
 
-        #add all special operations used in the simulation to graphBLAS namespace
-        register_special_op(beta)
+        #store initial impact caused by our distressed set
+        initial_impact = h.dup()
+        initial_impact << (initial_impact.reduce(monoid.plus) * v)
 
-        #incorporate initial shock
-        h << h.ewise_mult(d, binary.minus)
+        potential_impact = Vector(float, h.size)
+        h_new = Vector(float, h.size)
+        s_new = Vector(int, s.size)
 
         #begin simulation
         for t in range(max_iter):
 
-            mask = Vector(bool, s.size)
-            mask << s.select("==", 1) #number for mask should map to what we want to represent as our distressed state
-            indirect_impact = Vector(float, W.nrows)
-            indirect_impact(mask) << W.mxv(h, semiring.impact_semiring)
+            #update health
+            potential_impact << W.mxv(h, semiring.plus_times)
+            h_new << h.ewise_mult(potential_impact, binary.plus).apply(binary.min, right=1)
+            print(h_new)
 
-            # Use the custom unary operation for health update
-            h_new = Vector(float, h.size)
-            h_new << h.ewise_mult(indirect_impact, binary.plus)            
-            h_new = h.apply(unary.health_update)
+            #update state
+            condition1 = h.apply(lambda x: 1 if x > 0 else 0)
+            condition2 = s.apply(lambda x: 2 if x == 1 else 0)
+            temp = condition1.ewise_add(condition2, binary.max)
+            s_new << temp.ewise_add(s, binary.max)
 
-            #update state vector
-            s_new = s.dup()
-            mask_zero = Vector(bool, h_new.size)
-            mask_zero << h_new.select('==', 0)
-            s_new(mask_zero)[:] << 2
-
-            #initialize masks
-            mask_positive = h_new.select(select.greater_than_zero)
-            mask_s_not_2 = s.select(select.not_equal_two)
-
-            combined_mask = Vector(bool, h_new.size)
-            combined_mask << mask_positive.ewise_mult(mask_s_not_2, binary.land) 
-
-            #update state vector
-            s_new(combined_mask)[:] << 1
-
-            #check for convergence (read about euclidean norm and try to see if useful here)
+            #check for convergence
             if h.isclose(h_new) and s.isclose(s_new):
                 break
             
             #update to reflect new health and state vectors
             h, s = h_new, s_new
-    
-        #calculate debtrank
-        R = (h_new.ewise_mult(v).reduce() - h.ewise_mult(v).reduce())
-        return h_new, R.new()
-
+        
+        total_impact = h.reduce(monoid.plus)
+        
+        #calculate DebtRank
+        debt_rank = (total_impact * v) - initial_impact
+        
+        return debt_rank.new()
 
 
 

@@ -1,4 +1,3 @@
 pygraphblas
 pandas
 pytest
-networkx

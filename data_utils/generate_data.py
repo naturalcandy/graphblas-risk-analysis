@@ -1,42 +1,43 @@
-import networkx as nx
 import csv
-import random
+import numpy as np
 
-def generate_financial_network(n, m, weight_range=(1, 100)):
+def generate_financial_network(n, min_capital=1, max_capital=100, connection_factor=0.2, exposure_factor=0.6):
     """
-    Generate a synthetic financial network using the Barabási-Albert model.
+    Generate a synthetic financial network with realistic capital and exposure ratios.
     
     Parameters:
-    - n: Number of nodes
-    - m: Number of edges to attach from a new node to existing nodes
-    - weight_range: Tuple indicating the range of edge weights
+    - n: Number of nodes (institutions)
+    - min_capital, max_capital: Range for institution capital
+    - connection_factor: Factor to determine number of connections based on capital
+    - exposure_factor: Factor to determine exposure based on capital
     
     Returns:
-    - List of edges in the format (edge1, edge2, weight, buffer)
+    - List of edges in the format (node1, node2, exposure, capital)
     """
-    G = nx.barabasi_albert_graph(n, m)
+    # Generate capital for each node following a power-law distribution
+    capitals = np.random.pareto(2, n) * (max_capital - min_capital) + min_capital
     
     edges = []
-    for u, v in G.edges():
-        # Assign weight based on the degree of the nodes
-        weight = random.randint(weight_range[0], weight_range[1]) * (G.degree(u) + G.degree(v))
-        edges.append((u, v, weight))
+    for i in range(n):
+        # Determine number of connections for node i based on its capital
+        num_connections = min(n-1, int(capitals[i] * connection_factor))
+        connections = np.random.choice(n, num_connections, replace=False)
+        
+        for j in connections:
+            if i != j:  # Avoid self-loops
+                exposure = min(capitals[i], capitals[j]) * exposure_factor
+                edges.append((i, j, exposure, capitals[i]))
     
-    # Generate buffer (capital) for each node based on its degree
-    buffers = {node: G.degree(node) * random.randint(weight_range[0], weight_range[1]) for node in G.nodes()}
-    
-    return edges, buffers
+    return edges
 
-def save_to_csv(edges, buffers, filename="data/raw/synthetic_data.csv"):
+def save_to_csv(edges, filename="data/raw/synthetic_data.csv"):
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["Node1", "Node2", "Exposure", "Capital"])  
-        for edge in edges:
-            writer.writerow([edge[0], edge[1], edge[2], buffers[edge[1]]])
+        writer.writerows(edges)
 
 # Parameters
-n = 1000  # Number of nodes
-m = 5    # Number of edges to attach from a new node to existing nodes
+n = 500  # Number of nodes
 
-edges, buffers = generate_financial_network(n, m)
-save_to_csv(edges, buffers)
+edges = generate_financial_network(n)
+save_to_csv(edges)

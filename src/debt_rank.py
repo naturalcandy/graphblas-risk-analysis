@@ -45,7 +45,7 @@ def debt_rank_graphBLAS(L: Matrix,
                         h: Vector, 
                         s: Vector, 
                         max_iter: int = 100) -> Vector:
-    
+        
         #Calculate the exposure network W
         W = L.dup()
         for j in range(L.nrows):
@@ -61,17 +61,28 @@ def debt_rank_graphBLAS(L: Matrix,
         initial_impact = h.dup()
         initial_impact << (initial_impact.reduce(monoid.plus) * v)
 
-        potential_impact = Vector(float, h.size)
-        h_new = Vector(float, h.size)
+        #allocate new health and state vectors for next iteration
+        #h_new = Vector(float, h.size)
         s_new = Vector(int, s.size)
+
+        #use the identity value of the addition monoid to avoid extra calculations
+        #done in computing the sparsity of our updated health vector. 
+        h_new = Vector(float, h.size)
+        h_new[:] << 0.0
+
+        mask_zero = Vector(bool, h_new.size)
+            
 
         #begin simulation
         for t in range(max_iter):
+            
+            #set mask using state vector
+            mask_zero << s.select('==', 0)
 
             #update health
-            potential_impact << W.mxv(h, semiring.plus_times)
-            h_new << h.ewise_mult(potential_impact, binary.plus).apply(binary.min, right=1)
-            print(h_new)
+            h_new(accum=binary.plus, mask=mask_zero) << W.mxv(h, semiring.plus_times)
+            h(accum=binary.plus) << h_new.apply(binary.min, right=1)
+
 
             #update state
             condition1 = h.apply(lambda x: 1 if x > 0 else 0)
@@ -83,8 +94,10 @@ def debt_rank_graphBLAS(L: Matrix,
             if h.isclose(h_new) and s.isclose(s_new):
                 break
             
-            #update to reflect new health and state vectors
-            h, s = h_new, s_new
+            # Use h_new to store the intermediate results for next iteration
+            h = h_new
+            h_new[:] << 0.0
+            s = s_new
         
         total_impact = h.reduce(monoid.plus)
         

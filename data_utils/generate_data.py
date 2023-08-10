@@ -1,18 +1,13 @@
 import csv
 import numpy as np
 
+EDGE_FILENAME = "data/raw/synthetic_edges.csv"
+NODE_FILENAME = "data/raw/synthetic_nodes.csv"
+N = 500
+
 def generate_financial_network(n, min_capital=1, max_capital=100, connection_factor=0.2, exposure_factor=0.6):
     """
-    Generate a synthetic financial network with realistic capital and exposure ratios.
-    
-    Parameters:
-    - n: Number of nodes (institutions)
-    - min_capital, max_capital: Range for institution capital
-    - connection_factor: Factor to determine number of connections based on capital
-    - exposure_factor: Factor to determine exposure based on capital
-    
-    Returns:
-    - List of edges in the format (node1, node2, exposure, capital)
+    Generates a synthetic financial network with realistic capital and exposure ratios.
     """
     # Generate capital for each node following a power-law distribution
     capitals = np.random.pareto(2, n) * (max_capital - min_capital) + min_capital
@@ -24,20 +19,26 @@ def generate_financial_network(n, min_capital=1, max_capital=100, connection_fac
         connections = np.random.choice(n, num_connections, replace=False)
         
         for j in connections:
-            if i != j:  # Avoid self-loops
+            if i != j:  # avoid self loans
                 exposure = min(capitals[i], capitals[j]) * exposure_factor
-                edges.append((i, j, exposure, capitals[i]))
+                edges.append((i, j, exposure))
     
-    return edges
+    return capitals, edges
 
-def save_to_csv(edges, filename="data/raw/synthetic_data.csv"):
-    with open(filename, 'w', newline='') as csvfile:
+def save_to_csv(edges, capitals, edge_filename, node_filename):
+    # Save node (capital) data
+    with open(node_filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["Node1", "Node2", "Exposure", "Capital"])  
+        writer.writerow(["NodeID", "Capital"])  
+        for i, capital in enumerate(capitals):
+            writer.writerow([i, capital])
+
+    # Save edges
+    with open(edge_filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Node1", "Node2", "Exposure"])  
         writer.writerows(edges)
 
-# Parameters
-n = 500  # Number of nodes
-
-edges = generate_financial_network(n)
-save_to_csv(edges)
+if __name__ == '__main__':
+    capitals, edges = generate_financial_network(N)
+    save_to_csv(edges, capitals, EDGE_FILENAME, NODE_FILENAME)

@@ -65,13 +65,16 @@ def debt_rank_graphBLAS(L: Matrix,
         #h_new = Vector(float, h.size)
         s_new = Vector(int, s.size)
 
-        #use the identity value of the addition monoid to avoid extra calculations
-        #done in computing the sparsity of our updated health vector. 
+        #use identity value of the addition monoid to avoid extra calculations done in computing the sparsity of h_new 
         h_new = Vector(float, h.size)
         h_new[:] << 0.0
 
         mask_zero = Vector(bool, h_new.size)
-            
+
+        #initialize masks for managing state dynamics for nodes
+        not_inactive_mask = Vector(bool, s.size)
+        distressed_check = Vector(int, s.size)
+        inactive_check = Vector(int, s.size)
 
         #begin simulation
         for t in range(max_iter):
@@ -79,16 +82,15 @@ def debt_rank_graphBLAS(L: Matrix,
             #set mask using state vector
             mask_zero << s.select('==', 0)
 
-            #update health
+            #update health vector
             h_new(accum=binary.plus, mask=mask_zero) << W.mxv(h, semiring.plus_times)
             h(accum=binary.plus) << h_new.apply(binary.min, right=1)
 
-
-            #update state
-            condition1 = h.apply(lambda x: 1 if x > 0 else 0)
-            condition2 = s.apply(lambda x: 2 if x == 1 else 0)
-            temp = condition1.ewise_add(condition2, binary.max)
-            s_new << temp.ewise_add(s, binary.max)
+            #update state vector
+            not_inactive_mask << s.apply(lambda x: x != 2)
+            distressed_check(mask=not_inactive_mask) << h.apply(lambda x: 1 if x > 0 else 0)
+            inactive_check << s.apply(lambda x: 2 if x == 1 else 0)
+            s_new << distressed_check.ewise_add(inactive_check, binary.max).ewise_add(s, binary.max)
 
             #check for convergence
             if h.isclose(h_new) and s.isclose(s_new):

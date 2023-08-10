@@ -22,7 +22,6 @@ from graphblas import  unary, binary, monoid, semiring
     Returns:
     - Vector: DebtRank vector where each entry represents the DebtRank of the 
               corresponding institution.
-    - float: Total DebtRank value for the entire network.
 
     Overview:
     The function simulates the propagation of distress in a financial network. 
@@ -50,6 +49,8 @@ def debt_rank_graphBLAS(L: Matrix,
         W = L.dup()
         for j in range(L.nrows):
             W[:, j] << W[:, j].apply(binary.truediv, right=c[j]).apply(lambda x: max(1, x))
+        
+        W << W.T
 
         #Calculate the fraction of total outstanding loans v
         L_i = L.reduce_columnwise(monoid.plus)
@@ -62,9 +63,7 @@ def debt_rank_graphBLAS(L: Matrix,
         initial_impact << (initial_impact.reduce(monoid.plus) * v)
 
         #allocate new health and state vectors for next iteration
-        #h_new = Vector(float, h.size)
         s_new = Vector(int, s.size)
-
         #use identity value of the addition monoid to avoid extra calculations done in computing the sparsity of h_new 
         h_new = Vector(float, h.size)
         h_new[:] << 0.0

@@ -18,27 +18,27 @@ $\beta\sum_j W_{ij} I_j$ -> represents the indirect impact of institution i on i
 1. **Asset Liability Network (L)**: A matrix representation of financial exposures, where $L_{ij}$ represents the amount loaned by institution $j$ to institution $i$.
 
 2. **Exposure Network (W):**  This matrix represents the risk or exposure between institutions in the event of a default.
-    - **Element \( W_{ij} \):** This value quantifies the proportion of institution \( j \)'s capital that would be lost if institution \( i \), to whom \( j \) has loaned money, defaults.
-    - **Calculation:** \( W_{ij} = \min[1, L_{ij}/C_j] \), where \( L_{ij} \) is the loan from \( j \) to \( i \), and \( C_j \) is the total capital of institution \( j \).
-    - **Interpretation:** If \( W_{ij} = 0.2 \), it means that a default by institution \( i \) would result in a loss of 20% of institution \( j \)'s capital.
-    - **Limitation:** The exposure is capped at 1, meaning that the maximum possible loss is 100% of the capital.
+    - **Element $W_{ij}$:** This value quantifies the proportion of institution $j$'s capital that would be lost if institution $i$, to whom $j$ has loaned money, defaults.
+    - **Calculation:** $W_{ij} = \min[1, L_{ij}/C_j]$, where $L_{ij}$ is the loan from $j$ to $i$, and $C_j$ is the total capital of institution $j$.
+    - **Interpretation:** If $W_{ij} = 0.2$, it means that a default by institution $i$ would result in a loss of 20% of institution $j$'s capital.
+    - **Limitation:** The exposure is capped at $1$, meaning that the maximum possible loss is 100% of the capital.
 
 3. **Outstanding Loans:** This concept is crucial in understanding the financial obligations and risk exposure within a network of institutions.
-    - **Total Outstanding Loans for Institution \(i\):** The total amount of outstanding loans \(L_i\) for institution \(i\) is calculated as \(\sum_{j} L_{ji}\). This represents the total amount that other institutions owe to institution \(i\).
-    - **Fraction of Total Outstanding Loans for Institution \(i\):** The fraction of the total outstanding loans in the system that are owed by institution \(i\), denoted as \(v_i\), is calculated as \(v_i = \frac{L_i}{\sum_{j}L_j}\). This fraction is used to assess the relative importance of institution \(i\)'s loans within the entire system.
-    - *Note:* \(v_i\) represents the fraction of outstanding loans from institution \(i\) relative to all the loans in the system. It helps in understanding the potential impact of defaults and the distribution of risk within the network.
+    - **Total Outstanding Loans for Institution $i$:** The total amount of outstanding loans $L_i$ for institution $i$ is calculated as $\sum_{j} L_{ji}$. This represents the total amount that other institutions owe to institution $i$.
+    - **Fraction of Total Outstanding Loans for Institution $i$:** The fraction of the total outstanding loans in the system that are owed by institution $i$, denoted as $v_i$, is calculated as $v_i = \frac{L_i}{\sum_{j}L_j}$. This fraction is used to assess the relative importance of institution $i$'s loans within the entire system.
+    - *Note:* $v_i$ represents the fraction of outstanding loans from institution $i$ relative to all the loans in the system. It helps in understanding the potential impact of defaults and the distribution of risk within the network.
 
-4. **Update Economic Value:**In the context of financial institutions, the health and state of each institution are represented by two vectors \( h \) and \( s \).
-    - **Health (\( h_j(t) \)):** Represents the economic value or financial stability of institution \( j \) at time \( t \). It is a percentage that reflects the institution's ability to withstand financial shocks and meet its obligations. A value closer to 1 indicates a healthy institution, while a value closer to 0 indicates potential distress.
-    - **State (\( s_j(t) \)):** Represents the operational status of institution \( j \) at time \( t \). The state can be:
+4. **Update Economic Value:**In the context of financial institutions, the health and state of each institution are represented by two vectors $ h $ and $ s $.
+    - **Health ($ h_j(t) $):** Represents the economic value or financial stability of institution $ j $ at time $ t $. It is a percentage that reflects the institution's ability to withstand financial shocks and meet its obligations. A value closer to 1 indicates a healthy institution, while a value closer to 0 indicates potential distress.
+    - **State ($ s_j(t) $):** Represents the operational status of institution $ j $ at time $ t $. The state can be:
     - **Undistress:** The institution is operating normally and is financially stable.
     - **Distress:** The institution is facing financial difficulties and may be at risk of defaulting on its obligations.
     - **Inactive:** The institution has defaulted or ceased operations.
     The health and state values are constrained as follows:
-        - \( h_i(t) \in [0,1] \)
-        - \( s_i(t) \in \{ \text{Undistress}, \text{Distress}, \text{Inactive} \} \)
+        - $ h_i(t) \in [0,1] $
+        - $ s_i(t) \in \{ \text{Undistress}, \text{Distress}, \text{Inactive} \} $
     These metrics provide insights into the overall financial health of the system and can be used to assess the potential systemic risk and the propagation of financial distress through the network of institutions.
-    For more details on the equations for \( h \) and \( s \), see [Dynamics](#dynamics)
+    For more details on the equations for $ h $ and $ s $, see [Dynamics](#dynamics)
 
 5. **Calculate DebtRank:** The DebtRank of a node/set of nodes is calculated as the sum of the decrease in economic value across all nodes, expressed as a percentage of the total economic value of the network.
     - DebtRank of $S_f$ containing only the single node $i$, is expressed as $R_i = \sum_j h_j(t)v_j - h_i(1)v_i$

@@ -1,6 +1,6 @@
 # graphblas-risk-analysis
 
-A Python systemic risk analysis tool leveraging GraphBLAS's optimized sparse matrix operations for large scale risk propagation simulation. Uses  DebtRank methodology to qunatify systemic risk within a financial system. For those interested in the mathematical and conceptual details behind this implementation, please refer to the [Methodology Guide](methodology_guide.md).
+A Python systemic risk analysis tool leveraging GraphBLAS's optimized sparse matrix operations for large scale risk propagation simulation. Uses  DebtRank methodology to quantify systemic risk within a financial system. For those interested in the mathematical and conceptual details behind this implementation, please refer to the [Methodology Guide](methodology_guide.md).
 
 ## Basic Usage
 
